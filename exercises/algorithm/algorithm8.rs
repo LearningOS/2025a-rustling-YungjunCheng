@@ -1,6 +1,6 @@
 /*
-	queue
-	This question requires you to use queues to implement the functionality of the stac
+    queue
+    This question requires you to use queues to implement the functionality of the stack
 */
 #[derive(Debug)]
 pub struct Queue<T> {
@@ -50,39 +50,60 @@ impl<T> Default for Queue<T> {
     }
 }
 
-pub struct myStack<T>
-{
-    q1: Queue<T>,
-    q2: Queue<T>
+pub struct MyStack<T> {
+    // 使用更清晰的命名：main_queue 和 temp_queue
+    main_queue: Queue<T>,
+    temp_queue: Queue<T>,
 }
 
-impl<T> myStack<T> {
+impl<T> MyStack<T> {
     pub fn new() -> Self {
         Self {
-            q1: Queue::<T>::new(),
-            q2: Queue::<T>::new()
+            main_queue: Queue::<T>::new(),
+            temp_queue: Queue::<T>::new(),
         }
     }
     
     pub fn push(&mut self, elem: T) {
-        // 先将新元素加入 q2
-        self.q2.enqueue(elem);
+        // 方法1：你的实现（每次push都重新排列）
+        self.temp_queue.enqueue(elem);
         
-        // 将 q1 中的所有元素转移到 q2
-        while let Ok(value) = self.q1.dequeue() {
-            self.q2.enqueue(value);
+        // 将主队列中的所有元素转移到临时队列
+        while let Ok(value) = self.main_queue.dequeue() {
+            self.temp_queue.enqueue(value);
         }
         
-        // 交换 q1 和 q2，使得 q1 始终包含所有元素且新元素在队列前端
-        std::mem::swap(&mut self.q1, &mut self.q2);
+        // 交换两个队列
+        std::mem::swap(&mut self.main_queue, &mut self.temp_queue);
+    }
+    
+    // 替代实现：更高效的push方法（可选）
+    pub fn push_optimized(&mut self, elem: T) {
+        self.main_queue.enqueue(elem);
+        let size = self.main_queue.size();
+        
+        // 将前size-1个元素移到队列末尾
+        for _ in 0..size - 1 {
+            if let Ok(value) = self.main_queue.dequeue() {
+                self.main_queue.enqueue(value);
+            }
+        }
     }
     
     pub fn pop(&mut self) -> Result<T, &str> {
-        self.q1.dequeue()
+        self.main_queue.dequeue()
+    }
+    
+    pub fn peek(&self) -> Result<&T, &str> {
+        self.main_queue.peek()
     }
     
     pub fn is_empty(&self) -> bool {
-        self.q1.is_empty()
+        self.main_queue.is_empty()
+    }
+    
+    pub fn size(&self) -> usize {
+        self.main_queue.size()
     }
 }
 
@@ -91,9 +112,9 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_queue(){
-        let mut s = myStack::<i32>::new();
-        assert_eq!(s.pop(), Err("Stack is empty"));
+    fn test_stack_basic() {
+        let mut s = MyStack::<i32>::new();
+        assert_eq!(s.pop(), Err("Queue is empty"));
         s.push(1);
         s.push(2);
         s.push(3);
@@ -105,7 +126,30 @@ mod tests {
         assert_eq!(s.pop(), Ok(5));
         assert_eq!(s.pop(), Ok(4));
         assert_eq!(s.pop(), Ok(1));
-        assert_eq!(s.pop(), Err("Stack is empty"));
+        assert_eq!(s.pop(), Err("Queue is empty"));
         assert_eq!(s.is_empty(), true);
+    }
+    
+    #[test]
+    fn test_stack_peek() {
+        let mut s = MyStack::<i32>::new();
+        assert_eq!(s.peek(), Err("Queue is empty"));
+        s.push(10);
+        assert_eq!(s.peek(), Ok(&10));
+        s.push(20);
+        assert_eq!(s.peek(), Ok(&20));
+        s.pop();
+        assert_eq!(s.peek(), Ok(&10));
+    }
+    
+    #[test]
+    fn test_stack_size() {
+        let mut s = MyStack::<i32>::new();
+        assert_eq!(s.size(), 0);
+        s.push(1);
+        s.push(2);
+        assert_eq!(s.size(), 2);
+        s.pop();
+        assert_eq!(s.size(), 1);
     }
 }
